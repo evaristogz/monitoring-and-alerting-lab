@@ -2,10 +2,11 @@
 Module define fastapi server configuration
 """
 
+from urllib import response
 from fastapi import FastAPI
 from hypercorn.asyncio import serve
 from hypercorn.config import Config as HyperCornConfig
-from prometheus_client import Counter
+from prometheus_client import Counter, generate_latest
 
 app = FastAPI()
 
@@ -56,3 +57,9 @@ class SimpleServer:
         # Increment counter used for register the total number of calls in the bye endpoint
         BYE_ENDPOINT_REQUESTS.inc()
         return {"msg": "Bye Bye"}
+    
+    @app.get("/metrics")
+    async def get_metrics():
+        """Endpoint for prometheus metrics"""
+        REQUESTS.inc()
+        return Response(generate_latest(), media_type="text/plain")
