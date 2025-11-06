@@ -36,3 +36,14 @@ class TestSimpleServer:
 
         assert response.status_code == 200
         assert response.json() == {"msg": "Bye Bye"}
+
+    @pytest.mark.asyncio
+    async def test_metrics_endpoint(self):
+        """Tests the metrics endpoint"""
+        response = client.get("/metrics")
+        
+        assert response.status_code == 200
+        assert "server_requests_total" in response.text
+        assert "healthcheck_requests_total" in response.text
+        assert "main_requests_total" in response.text
+        assert "bye_requests_total" in response.text
