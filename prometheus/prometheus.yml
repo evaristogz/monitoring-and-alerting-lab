@@ -1,0 +1,25 @@
+# Global configuration for Prometheus
+global:
+  scrape_interval: 15s     # Default scrape interval
+  evaluation_interval: 15s # How often to evaluate alerting rules
+
+# Alerting rule files
+rule_files:
+  - "alert_rules.yml"
+
+# AlertManager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - host.docker.internal:9093  # AlertManager run inside Docker
+
+# Configuration of which applications to monitor
+scrape_configs:
+  # Job to monitor your FastAPI application
+  - job_name: 'fastapi-monitoring-app'
+    static_configs:
+      - targets: ['host.docker.internal:8081']  # Your app running on port 8081
+    metrics_path: '/metrics'                    # Endpoint where metrics are exposed
+    scrape_interval: 5s                         # Scrape metrics every 5 seconds
+    scrape_timeout: 5s                          # Timeout for each request
