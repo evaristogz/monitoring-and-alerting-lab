@@ -2,11 +2,10 @@
 Module define fastapi server configuration
 """
 
-from urllib import response
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from hypercorn.asyncio import serve
 from hypercorn.config import Config as HyperCornConfig
-from prometheus_client import Counter, generate_latest
+from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 
 app = FastAPI()
 
@@ -62,4 +61,4 @@ class SimpleServer:
     async def get_metrics():
         """Endpoint for prometheus metrics"""
         REQUESTS.inc()
-        return Response(generate_latest(), media_type="text/plain")
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
