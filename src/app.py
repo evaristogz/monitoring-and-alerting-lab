@@ -3,6 +3,11 @@ Module for launch application
 """
 
 import asyncio
+import sys
+import os
+
+# Add src directory to Python path
+sys.path.insert(0, os.path.dirname(__file__))
 
 from prometheus_client import start_http_server
 from application.app import SimpleServer
