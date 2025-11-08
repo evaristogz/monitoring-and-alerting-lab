@@ -11,6 +11,7 @@ grafana:
 # Configuración principal para AlertManager
 # Los valores sensibles (slack_api_url) se configuran en secret-values.yaml
 alertmanager:
+  enabled: true
   config:
     route:
       group_by: ['alertname', 'cluster', 'service']
