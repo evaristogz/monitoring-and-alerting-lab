@@ -2,13 +2,14 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "fast-api-webapp.fullname"  . }}
+  name: {{ include "fastapi-server.fullname"  . }}
   labels:
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
+    release: prometheus
 spec:
   endpoints:
   - port: {{ .Values.metrics.svc.name }}
   selector:
     matchLabels:
-      {{- include "fast-api-webapp.selectorLabels" . | nindent 6 }}
+      {{- include "fastapi-server.selectorLabels" . | nindent 6 }}
 {{- end }}

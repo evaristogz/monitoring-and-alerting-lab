@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "fast-api-webapp.fullname" . }}
+  name: {{ include "fastapi-server.fullname" . }}
   labels:
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -18,4 +18,4 @@ spec:
       name: {{ .Values.metrics.svc.name }}
     {{- end }}
   selector:
-    {{- include "fast-api-webapp.selectorLabels" . | nindent 4 }}
+    {{- include "fastapi-server.selectorLabels" . | nindent 4 }}

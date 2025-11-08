@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: "{{ include "fast-api-webapp.fullname" . }}-test-connection"
+  name: "{{ include "fastapi-server.fullname" . }}-test-connection"
   labels:
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
 spec:
@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "fast-api-webapp.fullname" . }}:{{ .Values.service.port }}']
+      args: ['{{ include "fastapi-server.fullname" . }}:{{ .Values.service.port }}']
   restartPolicy: Never

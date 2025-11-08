@@ -6,7 +6,7 @@ metadata:
   name: mongodb
   namespace: mongodb
   labels:
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
 spec:
   members: {{ .Values.mongodb.members }}
   type: ReplicaSet
@@ -50,7 +50,7 @@ metadata:
   name: my-user-password
   namespace: mongodb
   labels:
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
   annotations:
     # This is what defines this resource as a hook. Without this line, the
     # job is considered part of the release.
@@ -66,7 +66,7 @@ metadata:
   name: my-user-fast-api-password
   namespace: mongodb
   labels:
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
   annotations:
     # This is what defines this resource as a hook. Without this line, the
     # job is considered part of the release.
@@ -83,7 +83,7 @@ metadata:
   name: metrics-endpoint-password
   namespace: mongodb
   labels:
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
 type: Opaque
 stringData:
   password: {{ .Values.mongodb.password }}
@@ -97,7 +97,7 @@ metadata:
   # `prometheuses.monitoring.coreos.com` resouce.
   labels:
     release: prometheus
-    {{- include "fast-api-webapp.labels" . | nindent 4 }}
+    {{- include "fastapi-server.labels" . | nindent 4 }}
   name: mongodb-sm
   namespace: mongodb
 spec:
