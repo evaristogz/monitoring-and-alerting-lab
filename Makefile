@@ -6,7 +6,7 @@ PIP		= $(VENV)/bin/pip
 IMAGE_REGISTRY_DOCKERHUB 	?= evaristogz
 IMAGE_REGISTRY_GHCR			?= ghcr.io
 IMAGE_REPO					= evaristogz
-IMAGE_NAME					?= fastapi-monitoring
+IMAGE_NAME					?= fastapi-server
 VERSION						?= develop
 
 # Variables used to configure docker images registries to build and push
