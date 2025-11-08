@@ -1,0 +1,19 @@
+{{- if .Values.grafana.dashboard.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fastapi-server.fullname" . }}-dashboard
+  namespace: {{ .Values.grafana.namespace | default "monitoring" }}
+  labels:
+    {{- include "fastapi-server.labels" . | nindent 4 }}
+    app: grafana
+    component: dashboard
+    grafana_dashboard: "1"
+  annotations:
+    description: "ConfigMap containing FastAPI monitoring dashboard configuration"
+    created-by: "{{ include "fastapi-server.fullname" . }}"
+    chart-version: "{{ .Chart.Version }}"
+data:
+  fastapi-server.json: |
+{{ .Values.grafana.dashboard.json | indent 4 }}
+{{- end -}}

@@ -17,7 +17,7 @@ alerting:
 # Configuration of which applications to monitor
 scrape_configs:
   # Job to monitor your FastAPI application
-  - job_name: 'fastapi-monitoring-app'
+  - job_name: 'fastapi-monitoring'
     static_configs:
       - targets: ['host.docker.internal:8081']  # Your app running on port 8081
     metrics_path: '/metrics'                    # Endpoint where metrics are exposed

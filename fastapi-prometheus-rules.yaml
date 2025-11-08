@@ -1,0 +1,71 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fastapi-alert-rules
+  namespace: monitoring
+  labels:
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: fastapi_alerts
+    rules:
+    - alert: HighRequestRate
+      expr: rate(server_requests_total[1m]) * 60 > 5
+      for: 30s
+      labels:
+        severity: high
+        service: fastapi-server
+      annotations:
+        summary: "High request rate detected on FastAPI"
+        description: "The FastAPI app is receiving more than 5 requests per minute (current rate: {{ $value }} req/min)"
+    
+    - alert: FastAPIApplicationDown
+      expr: up{job="fastapi-server"} == 0
+      for: 30s
+      labels:
+        severity: critical
+        service: fastapi-server
+      annotations:
+        summary: "FastAPI Application is down"
+        description: "The FastAPI application is not responding to health checks"
+    
+    - alert: VeryHighRequestRate
+      expr: rate(server_requests_total[1m]) * 60 > 10
+      for: 15s
+      labels:
+        severity: critical
+        service: fastapi-server
+      annotations:
+        summary: "Very high request rate on FastAPI"
+        description: "FastAPI is experiencing very high request rates ({{ $value }} req/min)"
+    
+    - alert: FastAPICPUUsageHigh
+      expr: |
+        (
+          sum(rate(container_cpu_usage_seconds_total{pod=~"fastapi-server-.*", container="fastapi-server"}[5m])) by (pod, container)
+          /
+          sum(container_spec_cpu_quota{pod=~"fastapi-server-.*", container="fastapi-server"}/container_spec_cpu_period{pod=~"fastapi-server-.*", container="fastapi-server"}) by (pod, container)
+        ) * 100 > 80
+      for: 2m
+      labels:
+        severity: high
+        service: fastapi-server
+      annotations:
+        summary: "FastAPI container CPU usage is high"
+        description: "FastAPI container {{ $labels.pod }} is using {{ $value }}% of its CPU limit (200m). Current usage exceeds 80% of the configured limit."
+    
+    - alert: FastAPICPUUsageCritical
+      expr: |
+        (
+          sum(rate(container_cpu_usage_seconds_total{pod=~"fastapi-server-.*", container="fastapi-server"}[5m])) by (pod, container)
+          /
+          sum(container_spec_cpu_quota{pod=~"fastapi-server-.*", container="fastapi-server"}/container_spec_cpu_period{pod=~"fastapi-server-.*", container="fastapi-server"}) by (pod, container)
+        ) * 100 > 95
+      for: 1m
+      labels:
+        severity: critical
+        service: fastapi-server
+      annotations:
+        summary: "FastAPI container CPU usage is critical"
+        description: "FastAPI container {{ $labels.pod }} is using {{ $value }}% of its CPU limit (200m). This is dangerously close to the configured limit and may cause performance issues."
