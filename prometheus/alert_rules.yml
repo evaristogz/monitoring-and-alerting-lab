@@ -11,7 +11,7 @@ groups:
       description: "The app is receiving more than 10 requests per minute"
 
   - alert: ApplicationDown
-    expr: up{job="fastapi-monitoring"} == 0
+    expr: up{job="fastapi-server"} == 0
     for: 30s
     labels:
       severity: critical
