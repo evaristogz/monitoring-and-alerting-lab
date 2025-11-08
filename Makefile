@@ -3,9 +3,9 @@ PYTHON 	= $(VENV)/bin/python3
 PIP		= $(VENV)/bin/pip
 
 # Variables used to configure docker images
-IMAGE_REGISTRY_DOCKERHUB 	?= EvaristoGZ
+IMAGE_REGISTRY_DOCKERHUB 	?= evaristogz
 IMAGE_REGISTRY_GHCR			?= ghcr.io
-IMAGE_REPO					= EvaristoGZ
+IMAGE_REPO					= evaristogz
 IMAGE_NAME					?= monitoring-and-alerting-lab
 VERSION						?= develop
 
