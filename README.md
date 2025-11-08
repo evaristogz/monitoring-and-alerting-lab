@@ -1,244 +1,195 @@
-# keepcoding-devops-liberando-productos-practica-final
+# Monitoreo y alertas | Laboratorio práctico
 
-## Objetivo
+Este proyecto despliega una aplicación FastAPI con un stack completo de monitoreo usando Prometheus y Grafana en un cluster de Minikube.
 
-El objetivo es mejorar un proyecto creado previamente para ponerlo en producción, a través de la adicción de una serie de mejoras.
+Resultado de la Práctica Final del módulo "Liberando productos - SRE" de la XII Edición Bootcamp DevOps & Cloud Computing Full Stack de KeepCoding.
 
-## Proyecto inicial
+Se trata de una práctica con unos hitos marcados que tienen como objetivo aprender a implementar herramientas de monitoring (Prometheus + Grafana) junto a alertas mediante AlertManager y Slack (webhook) de una aplicación simple FastApi desplegada en Kubernetes.
 
-El proyecto inicial es un servidor que realiza lo siguiente:
+[![⭐ Conecta conmigo en LinkedIn](https://img.shields.io/badge/⭐_Conecta_conmigo_en-LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=000000)](https://www.linkedin.com/in/evaristogz/)
 
-- Utiliza [FastAPI](https://fastapi.tiangolo.com/) para levantar un servidor en el puerto `8081` e implementa inicialmente dos endpoints:
-  - `/`: Devuelve en formato `JSON` como respuesta `{"health": "ok"}` y un status code 200.
-  - `/health`: Devuelve en formato `JSON` como respuesta `{"message":"Hello World"}` y un status code 200.
+## Índice de contenidos
 
-- Se han implementado tests unitarios para el servidor [FastAPI](https://fastapi.tiangolo.com/)
+- [Requisitos previos](#requisitos-previos)
+- [🚀 Cómo desplegar el laboratorio](#cómo-desplegar-el-laboratorio)
+  - [1. Preparar el entorno de Kubernetes](#1-preparar-el-entorno-de-kubernetes)
+  - [2. Configurar repositorios de Helm](#2-configurar-repositorios-de-helm)
+  - [3. Desplegar el stack de monitoreo](#3-desplegar-el-stack-de-monitoreo)
+  - [4. Acceder a Grafana](#4-acceder-a-grafana)
+  - [5. Desplegar la aplicación FastAPI](#5-desplegar-la-aplicación-fastapi)
+  - [6. Acceder a la aplicación FastAPI](#6-acceder-a-la-aplicación-fastapi)
+- [Verificación del despliegue](#verificación-del-despliegue)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Limpieza del entorno](#limpieza-del-entorno)
 
-- Utiliza [prometheus-client](https://github.com/prometheus/client_python) para arrancar un servidor de métricas en el puerto `8000` y poder registrar métricas, siendo inicialmente las siguientes:
-  - `Counter('server_requests_total', 'Total number of requests to this webserver')`: Contador que se incrementará cada vez que se haga una llamada a alguno de los endpoints implementados por el servidor (inicialmente `/` y `/health`)
-  - `Counter('healthcheck_requests_total', 'Total number of requests to healthcheck')`: Contador que se incrementará cada vez que se haga una llamada al endpoint `/health`.
-  - `Counter('main_requests_total', 'Total number of requests to main endpoint')`: Contador que se incrementará cada vez que se haga una llamada al endpoint `/`.
+## Requisitos previos
 
-## Software necesario
+- Minikube
+- Helm
+- kubectl
 
-Es necesario disponer del siguiente software:
+Ejecutado en Windows 11 con Docker Desktop 4.50.0, Docker Engine v28.5.1,Helm v3.18.6, minikube v1.36.0 y kubectl v1.34.0
 
-- `Python` en versión `3.11.8` o superior, disponible para los diferentes sistemas operativos en la [página oficial de descargas](https://www.python.org/downloads/release/python-3118/)
+## Cómo desplegar el laboratorio
 
-- `virtualenv` para poder instalar las librerías necesarias de Python, se puede instalar a través del siguiente comando:
+### 1. Preparar el entorno de Kubernetes
 
-    ```sh
-    pip3 install virtualenv
-    ```
+Iniciar Minikube:
 
-    En caso de estar utilizando Linux y el comando anterior diera fallos se debe ejecutar el siguiente comando:
+```bash
+minikube start
+```
 
-    ```sh
-    sudo apt-get update && sudo apt-get install -y python3.11-venv
-    ```
+Habilitar el servidor de métricas:
 
-- `Docker` para poder arrancar el servidor implementado a través de un contenedor Docker, es posible descargarlo a [través de su página oficial](https://docs.docker.com/get-docker/).
+```bash
+minikube addons enable metrics-server
+```
 
-## Ejecución de servidor
+### 2. Configurar repositorios de Helm
 
-### Ejecución directa con Python
+Agregar el repositorio de la comunidad de Prometheus:
 
-1. Instalación de un virtualenv, **realizarlo sólo en caso de no haberlo realizado previamente**:
-   1. Obtener la versión actual de Python instalada para crear posteriormente un virtualenv:
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+```
 
-        ```sh
-        python3 --version
-        ```
+### 3. Desplegar el stack de monitoreo
 
-        El comando anterior mostrará algo como lo mostrado a continuación:ç
+Crear el namespace para monitoring:
 
-        ```sh
-        Python 3.11.8
-        ```
+```bash
+kubectl create namespace monitoring
+```
 
-   2. Crear de virtualenv en la raíz del directorio para poder instalar las librerías necesarias:
+Aplicar el ConfigMap del dashboard de Grafana:
 
-      ```sh
-      python3 -m venv venv
-      ```
+```bash
+kubectl apply -f grafana/fastapi-dashboard-configmap.yaml -n monitoring
+```
 
-2. Activar el virtualenv creado en el directorio `venv` en el paso anterior:
+Instalar el stack kube-prometheus (Prometheus + Grafana + AlertManager):
 
-     ```sh
-     source venv/bin/activate
-     ```
+```bash
+helm install prometheus prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --create-namespace \
+  --values secret-values.yaml
+```
 
-3. Instalar las librerías necesarias de Python, recogidas en el fichero `requirements.txt`, **sólo en caso de no haber realizado este paso previamente**. Es posible instalarlas a través del siguiente comando:
+### 4. Acceder a Grafana
 
-    ```sh
-    pip3 install -r requirements.txt
-    ```
+Obtener la contraseña de admin de Grafana:
 
-4. Ejecución del código para arrancar el servidor:
+```bash
+kubectl --namespace monitoring get secrets prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+```
 
-    ```sh
-    python3 src/app.py
-    ```
+Configurar port-forward para acceder a Grafana:
 
-5. La ejecución del comando anterior debería mostrar algo como lo siguiente:
+```bash
+export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=prometheus" -oname)
+kubectl --namespace monitoring port-forward $POD_NAME 3000
+```
 
-    ```sh
-    [2022-04-16 09:44:22 +0000] [1] [INFO] Running on http://0.0.0.0:8081 (CTRL + C to quit)
-    ```
+**Acceso a Grafana:**
+- URL: http://localhost:3000
+- Usuario: `admin`
+- Contraseña: La obtenida en el comando anterior
 
-### Ejecución a través de un contenedor Docker
+Una vez dentro de Grafana, puedes revisar el dashboard "fastapi-monitoring-dashboard".
 
-1. Crear una imagen Docker con el código necesario para arrancar el servidor:
+### 5. Desplegar la aplicación FastAPI
 
-    ```sh
-    docker build -t simple-server:0.0.1 .
-    ```
+Crear el namespace para la aplicación:
 
-2. Arrancar la imagen construida en el paso anterior mapeando los puertos utilizados por el servidor de FastAPI y el cliente de prometheus:
+```bash
+kubectl create namespace fastapi-server
+```
 
-    ```sh
-    docker run -d -p 8000:8000 -p 8081:8081 --name simple-server simple-server:0.0.1
-    ```
+Desplegar la aplicación usando Helm:
 
-3. Obtener los logs del contenedor creado en el paso anterior:
+```bash
+helm install fastapi-server ./chart \
+  --namespace fastapi-server \
+  --set image.repository=ghcr.io/evaristogz/fastapi-server \
+  --set image.tag=0.0.2 \
+  --set metrics.enabled=true \
+  --set grafana.dashboard.enabled=false
+```
 
-    ```sh
-    docker logs -f simple-server
-    ```
+### 6. Acceder a la aplicación FastAPI
 
-4. La ejecución del comando anterior debería mostrar algo como lo siguiente:
+Configurar port-forward para acceder a la aplicación:
 
-    ```sh
-    [2022-04-16 09:44:22 +0000] [1] [INFO] Running on http://0.0.0.0:8081 (CTRL + C to quit)
-    ```
+```bash
+export POD_NAME=$(kubectl get pods --namespace fastapi-server -l "app.kubernetes.io/name=fastapi-server,app.kubernetes.io/instance=fastapi-server" -o jsonpath="{.items[0].metadata.name}")
 
-## Comprobación de endpoints de servidor y métricas
+export CONTAINER_PORT=$(kubectl get pod --namespace fastapi-server $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
 
-Una vez arrancado el servidor, utilizando cualquier de las formas expuestas en los apartados anteriores, es posible probar las funcionalidades implementadas por el servidor:
+kubectl --namespace fastapi-server port-forward $POD_NAME 8080:$CONTAINER_PORT
+```
 
-- Comprobación de servidor FastAPI, a través de llamadas a los diferentes endpoints:
+**Acceso a la aplicación:**
+- URL: http://127.0.0.1:8080
 
-  - Realizar una petición al endpoint `/`
+## Verificación del despliegue
 
-      ```sh
-      curl -X 'GET' \
-      'http://0.0.0.0:8081/' \
-      -H 'accept: application/json'
-      ```
+### Comprobar que todos los pods están ejecutándose
 
-      Debería devolver la siguiente respuesta:
+```bash
+# Verificar pods de monitoring
+kubectl get pods -n monitoring
 
-      ```json
-      {"message":"Hello World"}
-      ```
+# Verificar pods de la aplicación
+kubectl get pods -n fastapi-server
+```
 
-  - Realizar una petición al endpoint `/health`
+### Comprobar servicios
 
-      ```sh
-      curl -X 'GET' \
-      'http://0.0.0.0:8081/health' \
-      -H 'accept: application/json' -v
-      ```
+```bash
+# Servicios de monitoring
+kubectl get svc -n monitoring
 
-      Debería devolver la siguiente respuesta.
+# Servicios de la aplicación
+kubectl get svc -n fastapi-server
+```
 
-      ```json
-      {"health": "ok"}
-      ```
+### Probar endpoints de la aplicación
 
-- Comprobación de registro de métricas, si se accede a la URL `http://0.0.0.0:8000` se podrán ver todas las métricas con los valores actuales en ese momento:
+```bash
+# Endpoint principal
+curl http://localhost:8080/
 
-  - Realizar varias llamadas al endpoint `/` y ver como el contador utilizado para registrar las llamadas a ese endpoint, `main_requests_total` ha aumentado, se debería ver algo como lo mostrado a continuación:
+# Endpoint de health
+curl http://localhost:8080/health
 
-    ```sh
-    # TYPE main_requests_total counter
-    main_requests_total 4.0
-    ```
+# Métricas de Prometheus (puerto 8000 dentro del contenedor)
+curl http://localhost:8080/metrics
+```
 
-  - Realizar varias llamadas al endpoint `/health` y ver como el contador utilizado para registrar las llamadas a ese endpoint, `healthcheck_requests_total` ha aumentado, se debería ver algo como lo mostrado a continuación:
+## Estructura del proyecto
 
-    ```sh
-    # TYPE healthcheck_requests_total counter
-    healthcheck_requests_total 26.0
-    ```
+- `chart/` - Helm chart para desplegar la aplicación FastAPI
+- `grafana/` - Configuración de dashboards de Grafana
+- `prometheus/` - Configuración de Prometheus y AlertManager
+- `src/` - Código fuente de la aplicación FastAPI
+- `secret-values.yaml` - Valores de configuración para el stack de monitoreo
 
-  - También se ha credo un contador para el número total de llamadas al servidor `server_requests_total`, por lo que este valor debería ser la suma de los dos anteriores, tal y como se puede ver a continuación:
+## Limpieza del entorno
 
-    ```sh
-    # TYPE server_requests_total counter
-    server_requests_total 30.0
-    ```
+Para limpiar el entorno completamente:
 
-## Tests
+```bash
+# Eliminar la aplicación FastAPI
+helm uninstall fastapi-server -n fastapi-server
+kubectl delete namespace fastapi-server
 
-Se ha implementado tests unitarios para probar el servidor FastAPI, estos están disponibles en el archivo `src/tests/app_test.py`.
+# Eliminar el stack de monitoring
+helm uninstall prometheus -n monitoring
+kubectl delete namespace monitoring
 
-Es posible ejecutar los tests de diferentes formas:
-
-- Ejecución de todos los tests:
-
-    ```sh
-    pytest
-    ```
-
-- Ejecución de todos los tests y mostrar cobertura:
-
-    ```sh
-    pytest --cov
-    ```
-
-- Ejecución de todos los tests y generación de report de cobertura:
-
-    ```sh
-    pytest --cov --cov-report=html
-    ```
-
-## Practica a realizar
-
-A partir del ejemplo inicial descrito en los apartados anteriores es necesario realizar una serie de mejoras:
-
-Los requirimientos son los siguientes:
-
-- Añadir por lo menos un nuevo endpoint a los existentes `/` y `/health`, un ejemplo sería `/bye` que devolvería `{"msg": "Bye Bye"}`, para ello será necesario añadirlo en el fichero [src/application/app.py](./src/application/app.py)
-
-- Creación de tests unitarios para el nuevo endpoint añadido, para ello será necesario modificar el [fichero de tests](./src/tests/app_test.py)
-
-- Opcionalmente creación de helm chart para desplegar la aplicación en Kubernetes, se dispone de un ejemplo de ello en el laboratorio realizado en la clase 3
-
-- Creación de pipelines de CI/CD en cualquier plataforma (Github Actions, Jenkins, etc) que cuenten por lo menos con las siguientes fases:
-
-  - Testing: tests unitarios con cobertura. Se dispone de un [ejemplo con Github Actions en el repositorio actual](./.github/workflows/test.yaml)
-
-  - Build & Push: creación de imagen docker y push de la misma a cualquier registry válido que utilice alguna estrategia de release para los tags de las vistas en clase, se recomienda GHCR ya incluido en los repositorios de Github. Se dispone de un [ejemplo con Github Actions en el repositorio actual](./.github/workflows/release.yaml)
-
-- Configuración de monitorización y alertas:
-
-  - Configurar monitorización mediante prometheus en los nuevos endpoints añadidos, por lo menos con la siguiente configuración:
-    - Contador cada vez que se pasa por el/los nuevo/s endpoint/s, tal y como se ha realizado para los endpoints implementados inicialmente
-
-  - Desplegar prometheus a través de Kubernetes mediante minikube y configurar alert-manager para por lo menos las siguientes alarmas, tal y como se ha realizado en el laboratorio del día 3 mediante el chart `kube-prometheus-stack`:
-    - Uso de CPU de un contenedor mayor al del límite configurado, se puede utilizar como base el ejemplo utilizado en el laboratorio 3 para mandar alarmas cuando el contenedor de la aplicación `fast-api` consumía más del asignado mediante request
-
-  - Las alarmas configuradas deberán tener severity high o critical
-
-  - Crear canal en slack `<nombreAlumno>-prometheus-alarms` y configurar webhook entrante para envío de alertas con alert manager
-
-  - Alert manager estará configurado para lo siguiente:
-    - Mandar un mensaje a Slack en el canal configurado en el paso anterior con las alertas con label "severity" y "critical"
-    - Deberán enviarse tanto alarmas como recuperación de las mismas
-    - Habrá una plantilla configurada para el envío de alarmas
-
-    Para poder comprobar si esta parte funciona se recomienda realizar una prueba de estres, como la realizada en el laboratorio 3 a partir del paso 8.
-
-  - Creación de un dashboard de Grafana, con por lo menos lo siguiente:
-    - Número de llamadas a los endpoints
-    - Número de veces que la aplicación ha arrancado
-
-## Entregables
-
-Se deberá entregar mediante un repositorio realizado a partir del original lo siguiente:
-
-- Código de la aplicación y los tests modificados
-- Ficheros para CI/CD configurados y ejemplos de ejecución válidos
-- Ficheros para despliegue y configuración de prometheus de todo lo relacionado con este, así como el dashboard creado exportado a `JSON` para poder reproducirlo
-- `README.md` donde se explique como se ha abordado cada uno de los puntos requeridos en el apartado anterior, con ejemplos prácticos y guía para poder reproducir cada uno de ellos
+# Detener Minikube (opcional)
+minikube stop
+```
