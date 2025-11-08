@@ -10,12 +10,12 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
 
 ---
 
-[🔽 Ir directamente a 🚀 Cómo desplegar el laboratorio 🔽](#cómo-desplegar-el-laboratorio)
+[🔽 Ir directamente a 🚀 Cómo desplegar el laboratorio 🔽](#-cómo-desplegar-el-laboratorio)
 
 ## Índice de contenidos
 
 - [Requisitos previos](#requisitos-previos)
-- [🚀 Cómo desplegar el laboratorio](#cómo-desplegar-el-laboratorio)
+- [🚀 Cómo desplegar el laboratorio](#-cómo-desplegar-el-laboratorio)
   - [1. Preparar el entorno de Kubernetes](#1-preparar-el-entorno-de-kubernetes)
   - [2. Configurar repositorios de Helm](#2-configurar-repositorios-de-helm)
   - [3. Desplegar el stack de monitoreo](#3-desplegar-el-stack-de-monitoreo)
@@ -23,7 +23,7 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
   - [5. Desplegar la aplicación FastAPI](#5-desplegar-la-aplicación-fastapi)
   - [6. Acceder a la aplicación FastAPI](#6-acceder-a-la-aplicación-fastapi)
 - [Verificación del despliegue](#verificación-del-despliegue)
-- [🧪 Pruebas y Testing del Sistema](#pruebas-y-testing-del-sistema)
+- [Pruebas y Testing del Sistema](#pruebas-y-testing-del-sistema)
 - [CI/CD y Release de nuevas versiones](#cicd-y-release-de-nuevas-versiones)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Limpieza del entorno](#limpieza-del-entorno)
