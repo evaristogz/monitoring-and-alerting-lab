@@ -6,7 +6,7 @@ PIP		= $(VENV)/bin/pip
 IMAGE_REGISTRY_DOCKERHUB 	?= evaristogz
 IMAGE_REGISTRY_GHCR			?= ghcr.io
 IMAGE_REPO					= evaristogz
-IMAGE_NAME					?= monitoring-and-alerting-lab
+IMAGE_NAME					?= fastapi-monitoring
 VERSION						?= develop
 
 # Variables used to configure docker images registries to build and push
@@ -40,5 +40,10 @@ docker-build: ## Build image
 publish: docker-build ## Publish image
 	docker push $(IMAGE)
 	docker push $(IMAGE_LATEST)
+	docker push $(IMAGE_GHCR)
+	docker push $(IMAGE_GHRC_LATEST)
+
+.PHONY: publish-ghcr
+publish-ghcr: docker-build ## Publish image only to GHCR
 	docker push $(IMAGE_GHCR)
 	docker push $(IMAGE_GHRC_LATEST)
