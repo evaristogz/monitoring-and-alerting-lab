@@ -40,32 +40,22 @@ spec:
         summary: "Very high request rate on FastAPI"
         description: "FastAPI is experiencing very high request rates ({{ $value }} req/min)"
     
-    - alert: FastAPICPUUsageHigh
-      expr: |
-        (
-          sum(rate(container_cpu_usage_seconds_total{pod=~"fastapi-server-.*", container="fastapi-server"}[5m])) by (pod, container)
-          /
-          sum(container_spec_cpu_quota{pod=~"fastapi-server-.*", container="fastapi-server"}/container_spec_cpu_period{pod=~"fastapi-server-.*", container="fastapi-server"}) by (pod, container)
-        ) * 100 > 80
-      for: 2m
-      labels:
-        severity: high
-        service: fastapi-server
-      annotations:
-        summary: "FastAPI container CPU usage is high"
-        description: "FastAPI container {{ $labels.pod }} is using {{ $value }}% of its CPU limit (200m). Current usage exceeds 80% of the configured limit."
-    
-    - alert: FastAPICPUUsageCritical
-      expr: |
-        (
-          sum(rate(container_cpu_usage_seconds_total{pod=~"fastapi-server-.*", container="fastapi-server"}[5m])) by (pod, container)
-          /
-          sum(container_spec_cpu_quota{pod=~"fastapi-server-.*", container="fastapi-server"}/container_spec_cpu_period{pod=~"fastapi-server-.*", container="fastapi-server"}) by (pod, container)
-        ) * 100 > 95
-      for: 1m
+    - alert: ExtremeRequestRate
+      expr: rate(server_requests_total[1m]) * 60 > 50
+      for: 10s
       labels:
         severity: critical
         service: fastapi-server
       annotations:
-        summary: "FastAPI container CPU usage is critical"
-        description: "FastAPI container {{ $labels.pod }} is using {{ $value }}% of its CPU limit (200m). This is dangerously close to the configured limit and may cause performance issues."
+        summary: "EXTREME request rate detected on FastAPI"
+        description: "FastAPI is under heavy load with {{ $value }} requests per minute. This may indicate a DDoS attack or system overload."
+    
+    - alert: FastAPIHighConcurrency
+      expr: sum(up{job="fastapi-server"}) > 1
+      for: 30s
+      labels:
+        severity: high
+        service: fastapi-server
+      annotations:
+        summary: "Multiple FastAPI instances detected"
+        description: "FastAPI has {{ $value }} active instances, which may indicate high load or scaling events."
