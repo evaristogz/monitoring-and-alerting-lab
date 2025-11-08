@@ -27,10 +27,38 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
 - Minikube
 - Helm
 - kubectl
+- **Canal de Slack configurado** con webhook para alertas
 
 Ejecutado en Windows 11 con Docker Desktop 4.50.0, Docker Engine v28.5.1,Helm v3.18.6, minikube v1.36.0 y kubectl v1.34.0
 
+
+
 ## Cómo desplegar el laboratorio
+
+### Configuración inicial de secretos
+
+Antes de empezar, debes configurar tu webhook de Slack. Esto solo deberás hacerlo una única vez.
+
+1. **Crear canal en Slack** para alertas (por ejemplo: *#tu-nombre-prometheus-alarms*)
+
+2. **Configurar webhook entrante** en Slack:
+   - Ir a tu workspace de Slack → Apps → Incoming Webhooks
+   - Crear nuevo webhook para tu canal de alertas
+   - Copiar la URL generada
+
+3. **Crear archivo de secretos**:
+   ```bash
+   cp secret-values.yaml.template secret-values.yaml
+   ```
+
+4. **Editar `secret-values.yaml`** con tus valores:
+   ```yaml
+   alertmanager:
+     config:
+       global:
+         slack_api_url: 'https://hooks.slack.com/services/TU_WORKSPACE/TU_CANAL/TU_TOKEN'
+       slack_channel: '#tu-canal-prometheus-alarms'
+   ```
 
 ### 1. Preparar el entorno de Kubernetes
 
@@ -75,8 +103,13 @@ Instalar el stack kube-prometheus (Prometheus + Grafana + AlertManager):
 helm install prometheus prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
   --create-namespace \
+  --values helm/monitoring-values.yaml \
   --values secret-values.yaml
 ```
+
+Se utilizan dos archivos de valores:
+- *helm/monitoring-values.yaml*: Configuración general (se puede versionar)
+- *secret-values.yaml*: Valores sensibles como webhooks de Slack (NO versionar)
 
 ### 4. Acceder a Grafana
 
@@ -173,9 +206,18 @@ curl http://localhost:8080/metrics
 
 - `chart/` - Helm chart para desplegar la aplicación FastAPI
 - `grafana/` - Configuración de dashboards de Grafana
-- `prometheus/` - Configuración de Prometheus y AlertManager
+- `prometheus/` - Configuración de Prometheus, AlertManager y reglas de monitoreo
+  - `fastapi-prometheus-rules.yaml` - Reglas específicas para monitorear FastAPI
+- `helm/` - Archivos de valores para charts de Helm
+  - `monitoring-values.yaml` - Configuración general del stack de monitoreo
 - `src/` - Código fuente de la aplicación FastAPI
-- `secret-values.yaml` - Valores de configuración para el stack de monitoreo
+- `secret-values.yaml` - **Valores sensibles** (webhook Slack, contraseñas) - NO versionar
+
+### 🔐 Manejo de secretos
+
+- **`secret-values.yaml`**: Contiene únicamente valores sensibles (webhook de Slack, API keys)
+- **`helm/monitoring-values.yaml`**: Configuración general que puede ser versionada sin problemas
+- Se recomienda añadir `secret-values.yaml` al `.gitignore` para evitar exponer credenciales
 
 ## Limpieza del entorno
 
