@@ -1,0 +1,120 @@
+# Configuration for kube-prometheus-stack values
+grafana:
+  sidecar:
+    dashboards:
+      enabled: true
+      # Search dashboards by label
+      label: grafana_dashboard
+      # In all namespaces
+      searchNamespace: ALL
+
+# Configuración principal para AlertManager
+# Los valores sensibles (slack_api_url) se configuran en secret-values.yaml
+alertmanager:
+  config:
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'web.hook'
+      routes:
+      # Ruta para ignorar alertas de monitoreo/sistema
+      - match:
+          alertname: 'Watchdog'
+        receiver: 'null'
+      # Ruta para ignorar alertas de minikube/desarrollo
+      - match_re:
+          alertname: 'KubeControllerManagerDown|KubeSchedulerDown|etcd.*|AlertmanagerClusterCrashlooping'
+        receiver: 'null'
+      - match:
+          job: 'kube-controller-manager'
+        receiver: 'null'
+      - match:
+          job: 'kube-scheduler'  
+        receiver: 'null'
+      - match:
+          job: 'kube-etcd'
+        receiver: 'null'
+      # Rutas para alertas importantes
+      - match:
+          severity: critical
+        receiver: slack-critical
+      - match:
+          severity: high
+        receiver: slack-high
+    
+    inhibit_rules:
+    # Inhibir alertas de componentes de Kubernetes en minikube (no relevantes para desarrollo)
+    - source_matchers:
+      - alertname="MinikubeMode"
+      target_matchers:
+      - alertname=~"KubeControllerManagerDown|KubeSchedulerDown|etcd.*|TargetDown"
+    
+    # Inhibir alertas de etcd en minikube
+    - target_matchers:
+      - alertname=~"etcd.*"
+      - job="kube-etcd"
+    
+    # Inhibir alertas de componentes del sistema en minikube
+    - target_matchers:
+      - alertname=~"KubeControllerManagerDown|KubeSchedulerDown"
+    
+    # Inhibir TargetDown para servicios del sistema en minikube
+    - target_matchers:
+      - alertname="TargetDown"
+      - job=~"kube-controller-manager|kube-scheduler|kube-etcd"
+    
+    # Inhibir AlertmanagerClusterCrashlooping en entornos de desarrollo
+    - target_matchers:
+      - alertname="AlertmanagerClusterCrashlooping"
+      - namespace="monitoring"
+
+    receivers:
+    # Receiver nulo para ignorar alertas de minikube
+    - name: 'null'
+    
+    - name: 'web.hook'
+      slack_configs:
+      - channel: '#evaristogz-prometheus-alarms'
+        title: 'FastAPI Alert - {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          *Status:* {{ .Status }}
+          {{ end }}
+    
+    - name: 'slack-critical'
+      slack_configs:
+      - channel: '#evaristogz-prometheus-alarms'
+        title: '🚨 CRITICAL Alert - {{ .GroupLabels.alertname }}'
+        title_link: 'http://localhost:9093'
+        text: |
+          🔴 *CRITICAL ALERT*
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          *Status:* {{ .Status }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}
+    
+    - name: 'slack-high'
+      slack_configs:
+      - channel: '#evaristogz-prometheus-alarms'
+        title: '⚠️ HIGH Alert - {{ .GroupLabels.alertname }}'
+        title_link: 'http://localhost:9093'
+        text: |
+          🟡 *HIGH PRIORITY ALERT*
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Instance:* {{ .Labels.instance }}
+          *Status:* {{ .Status }}
+          *Started:* {{ .StartsAt }}
+          {{ end }}

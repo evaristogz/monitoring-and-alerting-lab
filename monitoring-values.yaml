@@ -1,9 +1,0 @@
-# Configuration for kube-prometheus-stack values
-grafana:
-  sidecar:
-    dashboards:
-      enabled: true
-      # Search dashboards by label
-      label: grafana_dashboard
-      # In all namespaces
-      searchNamespace: ALL
