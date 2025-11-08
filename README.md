@@ -8,6 +8,10 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
 
 [![⭐ Conecta conmigo en LinkedIn](https://img.shields.io/badge/⭐_Conecta_conmigo_en-LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white&labelColor=000000)](https://www.linkedin.com/in/evaristogz/)
 
+---
+
+[🔽 Ir directamente a 🚀 Cómo desplegar el laboratorio 🔽](#cómo-desplegar-el-laboratorio)
+
 ## Índice de contenidos
 
 - [Requisitos previos](#requisitos-previos)
@@ -19,6 +23,7 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
   - [5. Desplegar la aplicación FastAPI](#5-desplegar-la-aplicación-fastapi)
   - [6. Acceder a la aplicación FastAPI](#6-acceder-a-la-aplicación-fastapi)
 - [Verificación del despliegue](#verificación-del-despliegue)
+- [CI/CD y Release de nuevas versiones](#cicd-y-release-de-nuevas-versiones)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Limpieza del entorno](#limpieza-del-entorno)
 
@@ -30,8 +35,6 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
 - **Canal de Slack configurado** con webhook para alertas
 
 Ejecutado en Windows 11 con Docker Desktop 4.50.0, Docker Engine v28.5.1,Helm v3.18.6, minikube v1.36.0 y kubectl v1.34.0
-
-
 
 ## Cómo desplegar el laboratorio
 
@@ -202,22 +205,58 @@ curl http://localhost:8080/health
 curl http://localhost:8080/metrics
 ```
 
-## Estructura del proyecto
+## CI/CD y Release de nuevas versiones
 
-- `chart/` - Helm chart para desplegar la aplicación FastAPI
-- `grafana/` - Configuración de dashboards de Grafana
-- `prometheus/` - Configuración de Prometheus, AlertManager y reglas de monitoreo
-  - `fastapi-prometheus-rules.yaml` - Reglas específicas para monitorear FastAPI
-- `helm/` - Archivos de valores para charts de Helm
-  - `monitoring-values.yaml` - Configuración general del stack de monitoreo
-- `src/` - Código fuente de la aplicación FastAPI
-- `secret-values.yaml` - **Valores sensibles** (webhook Slack, contraseñas) - NO versionar
+### Workflow automático de GitHub Actions
 
-### 🔐 Manejo de secretos
+Este proyecto incluye workflows de GitHub Actions que se ejecutan automáticamente:
 
-- **`secret-values.yaml`**: Contiene únicamente valores sensibles (webhook de Slack, API keys)
-- **`helm/monitoring-values.yaml`**: Configuración general que puede ser versionada sin problemas
-- Se recomienda añadir `secret-values.yaml` al `.gitignore` para evitar exponer credenciales
+1. **Test Workflow**: Se ejecuta en cada push y pull request para ejecutar tests
+2. **Release & Build Workflow**: Se ejecuta al crear tags para generar releases automáticamente
+
+### Crear una nueva release
+
+Para crear una nueva versión de la aplicación y generar automáticamente la imagen Docker:
+
+1. **Hacer commit de cambios**:
+   ```bash
+   git add .
+   git commit -m "Test"
+   git push origin main
+   ```
+
+2. **Crear y hacer push de tag de versión**:
+   ```bash
+   # Crear tag con versión semántica (ejemplo: v0.0.3)
+   git tag v0.0.3
+   git push origin v0.0.3
+   ```
+
+3. **El workflow automáticamente**:
+   - Ejecutará los tests
+   - Construirá la imagen Docker
+   - La subirá a GitHub Container Registry (`ghcr.io`)
+
+### Desplegar la nueva versión
+
+Una vez que el workflow termine, actualizar el despliegue:
+
+```bash
+helm upgrade fastapi-server ./chart \
+  --namespace fastapi-server \
+  --set image.repository=ghcr.io/evaristogz/fastapi-server \
+  --set image.tag=0.0.3 \
+  --set metrics.enabled=true \
+  --set grafana.dashboard.enabled=false
+```
+
+Puedes verificar las imágenes disponibles en [GitHub Packages](https://github.com/evaristogz/fastapi-server/pkgs/container/fastapi-server)
+
+### Manejo de secretos
+
+- **`secret-values.yaml`**: Contiene únicamente valores sensibles (webhook de Slack, API keys).
+- **`helm/monitoring-values.yaml`**: Configuración general que puede ser versionada sin problemas.
+- Se recomienda añadir `secret-values.yaml` al `.gitignore` para evitar exponer credenciales.
 
 ## Limpieza del entorno
 
@@ -235,3 +274,5 @@ kubectl delete namespace monitoring
 # Detener Minikube (opcional)
 minikube stop
 ```
+
+Recuerda que puede haber imágenes de Docker en tu GitHub Container Registry o en tu Docker Hub.
