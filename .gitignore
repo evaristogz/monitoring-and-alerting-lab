@@ -118,6 +118,11 @@ env.bak/
 venv.bak/
 *.yaml.bkp
 
+# Secret files
+secret-values.yaml
+*-secret.yaml
+*.secret
+
 # Spyder project settings
 .spyderproject
 .spyproject
