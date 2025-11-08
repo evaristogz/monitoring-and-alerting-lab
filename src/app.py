@@ -29,6 +29,4 @@ class Container:
 if __name__ == "__main__":
     start_http_server(8000)
     container = Container()
-    loop = asyncio.get_event_loop()
-    asyncio.ensure_future(container.start_server(), loop=loop)
-    loop.run_forever()
+    asyncio.run(container.start_server())
