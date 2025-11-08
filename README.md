@@ -23,6 +23,7 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
   - [5. Desplegar la aplicación FastAPI](#5-desplegar-la-aplicación-fastapi)
   - [6. Acceder a la aplicación FastAPI](#6-acceder-a-la-aplicación-fastapi)
 - [Verificación del despliegue](#verificación-del-despliegue)
+- [🧪 Pruebas y Testing del Sistema](#pruebas-y-testing-del-sistema)
 - [CI/CD y Release de nuevas versiones](#cicd-y-release-de-nuevas-versiones)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Limpieza del entorno](#limpieza-del-entorno)
@@ -122,7 +123,7 @@ Obtener la contraseña de admin de Grafana:
 kubectl --namespace monitoring get secrets prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 -d ; echo
 ```
 
-Configurar port-forward para acceder a Grafana:
+Configurar port-forward para acceder a Grafana (debemos esperar a que el pod esté con estado *running*):
 
 ```bash
 export POD_NAME=$(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana,app.kubernetes.io/instance=prometheus" -oname)
@@ -134,7 +135,7 @@ kubectl --namespace monitoring port-forward $POD_NAME 3000
 - Usuario: `admin`
 - Contraseña: La obtenida en el comando anterior
 
-Una vez dentro de Grafana, puedes revisar el dashboard "fastapi-monitoring-dashboard".
+Una vez dentro de Grafana, puedes revisar el dashboard "FastAPI Monitoring Dashboard".
 
 ### 5. Desplegar la aplicación FastAPI
 
@@ -157,7 +158,7 @@ helm install fastapi-server ./chart \
 
 ### 6. Acceder a la aplicación FastAPI
 
-Configurar port-forward para acceder a la aplicación:
+Configurar port-forward para acceder a la aplicación (debemos esperar a que el pod esté con estado *running*):
 
 ```bash
 export POD_NAME=$(kubectl get pods --namespace fastapi-server -l "app.kubernetes.io/name=fastapi-server,app.kubernetes.io/instance=fastapi-server" -o jsonpath="{.items[0].metadata.name}")
@@ -168,7 +169,7 @@ kubectl --namespace fastapi-server port-forward $POD_NAME 8080:$CONTAINER_PORT
 ```
 
 **Acceso a la aplicación:**
-- URL: http://127.0.0.1:8080
+- URL: http://localhost:8080
 
 ## Verificación del despliegue
 
@@ -205,7 +206,153 @@ curl http://localhost:8080/health
 curl http://localhost:8080/metrics
 ```
 
-## CI/CD y Release de nuevas versiones
+## Pruebas y testing del sistema
+
+### Reiniciar el pod de FastAPI
+
+Para probar la resistencia del sistema y las alertas de reinicio:
+
+```bash
+# Reiniciar el deployment (rolling restart)
+kubectl rollout restart deployment/fastapi-server -n fastapi-server
+
+# Verificar el estado del rollout
+kubectl rollout status deployment/fastapi-server -n fastapi-server
+```
+
+### Pruebas de estrés con Apache Bench (ab)
+
+Para generar carga y probar las alertas de CPU/memoria:
+
+```bash
+# Instalar apache2-utils si no está disponible (en Ubuntu/Debian)
+sudo apt-get update && sudo apt-get install -y apache2-utils
+
+# Prueba de estrés intensa - 5000 requests con 50 concurrentes
+ab -n 5000 -c 50 http://localhost:8080/
+
+# Prueba de estrés al endpoint de health
+ab -n 2000 -c 20 http://localhost:8080/health
+
+# Prueba sostenida por tiempo (30 segundos)
+ab -t 30 -c 25 http://localhost:8080/
+```
+
+**Monitorizar durante las pruebas:**
+
+```bash
+# Ver uso de CPU/memoria en tiempo real
+kubectl top pods -n fastapi-server
+
+# Ver logs de la aplicación durante la prueba
+kubectl logs -f -n fastapi-server deployment/fastapi-server
+```
+
+### Depuración y verificación de componentes
+
+#### Verificar Prometheus
+
+```bash
+# Port-forward para acceder a Prometheus
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-prometheus 9090:9090
+```
+
+Acceder a http://localhost:9090 y verificar:
+- **Status → Targets**: Todos los endpoints deben estar "UP"
+- **Alerts**: Ver alertas activas
+- **Graph**: Consultar métricas como `up`, `fastapi_requests_total`
+
+#### Verificar AlertManager
+
+```bash
+# Port-forward para acceder a AlertManager
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-alertmanager 9093:9093
+```
+
+Acceder a http://localhost:9093 y verificar:
+- **Alerts**: Ver alertas activas y su estado
+- **Status**: Configuración y receivers
+- **Silences**: Alertas silenciadas
+
+#### Verificar Grafana
+
+Ya configurado en el paso 4, pero para verificar dashboards:
+
+1. **Acceder a Grafana**: http://localhost:3000
+2. **Verificar datasource**: Configuration → Data Sources → Prometheus
+3. **Importar dashboards**: 
+   - Dashboards → Manage → Import
+   - ID: 1860 (Node Exporter Full)
+   - ID: 6417 (Kubernetes Cluster Monitoring)
+
+#### Probar alertas de Slack
+
+Para verificar que las alertas llegan a Slack:
+
+**Simular alertas reales del sistema**
+
+```bash
+# Simular alerta crítica eliminando pods múltiples veces
+for i in {1..3}; do
+  kubectl delete pod -n fastapi-server -l "app.kubernetes.io/name=fastapi-server"
+  sleep 30
+done
+
+# Generar carga sostenida para alertas de CPU
+ab -t 120 -c 50 http://localhost:8080/ &
+
+# Verificar alertas en AlertManager
+curl -s http://localhost:9093/api/v1/alerts | jq '.data[] | {fingerprint, status, labels}'
+```
+
+**Verificar el resultado:**
+
+1. **Revisar tu canal de Slack** - Deberías ver el mensaje de prueba
+2. **Verificar en AlertManager** (http://localhost:9093):
+   ```bash
+   # Ver alertas activas
+   curl -s http://localhost:9093/api/v1/alerts | jq '.data[].labels.alertname'
+   
+   # Ver estado de receivers
+   curl -s http://localhost:9093/api/v1/status | jq '.data.config'
+   ```
+
+**Solución de problemas comunes:**
+
+```bash
+# Verificar logs de AlertManager
+kubectl logs -n monitoring -l app.kubernetes.io/name=alertmanager --tail=100
+
+# Verificar configuración de AlertManager
+kubectl exec -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-0 -- \
+  amtool config show
+
+# Probar conectividad desde el pod de AlertManager
+kubectl exec -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager-0 -- \
+  wget --spider -O /dev/null https://hooks.slack.com/services/test
+```
+
+### Comandos útiles para depuración
+
+```bash
+# Ver logs de todos los componentes
+kubectl logs -n monitoring -l app=prometheus --tail=50
+kubectl logs -n monitoring -l app.kubernetes.io/name=grafana --tail=50
+kubectl logs -n monitoring -l app.kubernetes.io/name=alertmanager --tail=50
+
+# Verificar configuración de AlertManager
+kubectl get secret -n monitoring alertmanager-prometheus-kube-prometheus-alertmanager -o yaml
+
+# Ver eventos del cluster
+kubectl get events --sort-by=.metadata.creationTimestamp -n fastapi-server
+kubectl get events --sort-by=.metadata.creationTimestamp -n monitoring
+
+# Verificar recursos disponibles
+kubectl describe nodes
+kubectl top nodes
+```
+
+## Pruebas de CI/CD y release de nuevas versiones
 
 ### Workflow automático de GitHub Actions
 
