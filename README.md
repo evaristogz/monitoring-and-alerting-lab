@@ -36,25 +36,25 @@ Se trata de una práctica con unos hitos marcados que tienen como objetivo apren
 
 Ejecutado en Windows 11 con Docker Desktop 4.50.0, Docker Engine v28.5.1,Helm v3.18.6, minikube v1.36.0 y kubectl v1.34.0
 
-## Cómo desplegar el laboratorio
+## 🚀 Cómo desplegar el laboratorio
 
-### Configuración inicial de secretos
+### 0. Configuración inicial de secretos
 
 Antes de empezar, debes configurar tu webhook de Slack. Esto solo deberás hacerlo una única vez.
 
-1. **Crear canal en Slack** para alertas (por ejemplo: *#tu-nombre-prometheus-alarms*)
+0.1. **Crear canal en Slack** para alertas (por ejemplo: *#tu-nombre-prometheus-alarms*)
 
-2. **Configurar webhook entrante** en Slack:
+0.2. **Configurar webhook entrante** en Slack:
    - Ir a tu workspace de Slack → Apps → Incoming Webhooks
    - Crear nuevo webhook para tu canal de alertas
    - Copiar la URL generada
 
-3. **Crear archivo de secretos**:
+0.3. **Crear archivo de secretos**:
    ```bash
    cp secret-values.yaml.template secret-values.yaml
    ```
 
-4. **Editar `secret-values.yaml`** con tus valores:
+0.4. **Editar `secret-values.yaml`** con tus valores:
    ```yaml
    alertmanager:
      config:
