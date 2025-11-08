@@ -83,7 +83,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "server_requests_total",
+              "expr": "sum(server_requests_total)",
               "refId": "A"
             }
           ],
@@ -236,7 +236,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "main_requests_total",
+              "expr": "sum(main_requests_total)",
               "legendFormat": "Main Endpoint (/)",
               "refId": "A"
             },
@@ -245,7 +245,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "healthcheck_requests_total",
+              "expr": "sum(healthcheck_requests_total)",
               "legendFormat": "Health Check (/health)",
               "refId": "B"
             },
@@ -254,7 +254,7 @@ data:
                 "type": "prometheus",
                 "uid": "prometheus"
               },
-              "expr": "bye_requests_total",
+              "expr": "sum(bye_requests_total)",
               "legendFormat": "Bye Endpoint (/bye)",
               "refId": "C"
             }
