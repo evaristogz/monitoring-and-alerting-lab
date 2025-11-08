@@ -61,8 +61,13 @@ Antes de empezar, debes configurar tu webhook de Slack. Esto solo deberás hacer
      config:
        global:
          slack_api_url: 'https://hooks.slack.com/services/TU_WORKSPACE/TU_CANAL/TU_TOKEN'
-       slack_channel: '#tu-canal-prometheus-alarms'
    ```
+
+   > **Nota**: El canal de Slack se configura en `helm/monitoring-values.yaml`, no aquí.
+
+5. **Configurar el canal de Slack** en `helm/monitoring-values.yaml`:
+   - Buscar las líneas que contienen `channel: '#evaristogz-prometheus-alarms'`
+   - Cambiar `#evaristogz-prometheus-alarms` por tu canal (ej: `#tu-nombre-prometheus-alarms`)
 
 ### 1. Preparar el entorno de Kubernetes
 
@@ -284,26 +289,6 @@ Ya configurado en el paso 4, pero para verificar dashboards:
    - Dashboards → Manage → Import
    - ID: 1860 (Node Exporter Full)
    - ID: 6417 (Kubernetes Cluster Monitoring)
-
-#### Probar alertas de Slack
-
-Para verificar que las alertas llegan a Slack:
-
-**Simular alertas reales del sistema**
-
-```bash
-# Simular alerta crítica eliminando pods múltiples veces
-for i in {1..3}; do
-  kubectl delete pod -n fastapi-server -l "app.kubernetes.io/name=fastapi-server"
-  sleep 30
-done
-
-# Generar carga sostenida para alertas de CPU
-ab -t 120 -c 50 http://localhost:8080/ &
-
-# Verificar alertas en AlertManager
-curl -s http://localhost:9093/api/v1/alerts | jq '.data[] | {fingerprint, status, labels}'
-```
 
 **Verificar el resultado:**
 
