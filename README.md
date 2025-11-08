@@ -42,19 +42,19 @@ Ejecutado en Windows 11 con Docker Desktop 4.50.0, Docker Engine v28.5.1,Helm v3
 
 Antes de empezar, debes configurar tu webhook de Slack. Esto solo deberás hacerlo una única vez.
 
-0.1. **Crear canal en Slack** para alertas (por ejemplo: *#tu-nombre-prometheus-alarms*)
+1. **Crear canal en Slack** para alertas (por ejemplo: *#tu-nombre-prometheus-alarms*)
 
-0.2. **Configurar webhook entrante** en Slack:
+2. **Configurar webhook entrante** en Slack:
    - Ir a tu workspace de Slack → Apps → Incoming Webhooks
    - Crear nuevo webhook para tu canal de alertas
    - Copiar la URL generada
 
-0.3. **Crear archivo de secretos**:
+3. **Crear archivo de secretos**:
    ```bash
    cp secret-values.yaml.template secret-values.yaml
    ```
 
-0.4. **Editar `secret-values.yaml`** con tus valores:
+4. **Editar `secret-values.yaml`** con tus valores:
    ```yaml
    alertmanager:
      config:
