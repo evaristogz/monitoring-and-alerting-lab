@@ -7,7 +7,7 @@ image:
   repository: evaristogz/fastapi-server
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "1.1.0"
+  tag: "0.0.3"
 # imagePullSecrets created to use Docker Hub Private Account
 imagePullSecrets:
   - name: dockerhub-access
@@ -91,7 +91,7 @@ config:
   mongoService: mongodb
 mongodb:
   # -- Indicate whether MongoDB will be enabled or not
-  enabled: true
+  enabled: false
   # -- Number of members of MongoDB replicaset
   members: 3
   # -- MongoDB version
