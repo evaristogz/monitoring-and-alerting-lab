@@ -29,6 +29,7 @@ spec:
       serviceAccountName: {{ include "fast-api-webapp.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.mongodb.enabled }}
       initContainers:
         - name: wait-mongo
           image: mongo:{{ .Values.mongodb.version }}
@@ -37,6 +38,7 @@ spec:
           envFrom:
             - secretRef:
                 name: {{ include "fast-api-webapp.fullname" . }}-secret
+      {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
