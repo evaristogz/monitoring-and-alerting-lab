@@ -1,15 +1,40 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'YOUR_SLACK_WEBHOOK_URL_HERE'
+
+# Inhibit rules comentadas para permitir que las alertas pasen
+# inhibit_rules:
+# - source_matchers:
+#   - alertname="Watchdog"
+#   target_matchers:
+#   - alertname=~"KubeControllerManagerDown|KubeSchedulerDown|etcd.*|TargetDown"
+
 route:
-  group_by: ['alertname']
+  group_by: ['alertname', 'cluster', 'service']
   group_wait: 10s
   group_interval: 10s
-  repeat_interval: 5m
+  repeat_interval: 1h
   receiver: 'slack-notifications'
   routes:
   - match:
+      alertname: Watchdog
+    receiver: "null"
+  - match:
+      job: kube-controller-manager
+    receiver: "null"
+  - match:
+      job: kube-scheduler
+    receiver: "null"
+  - match:
       severity: critical
     receiver: 'slack-critical'
+  - match:
+      severity: high
+    receiver: 'slack-high'
 
 receivers:
+- name: "null"
+
 - name: 'slack-notifications'
   slack_configs:
   - channel: '#evaristogz-prometheus-alarms'
@@ -20,6 +45,7 @@ receivers:
       *Description:* {{ .Annotations.description }}
       *Severity:* {{ .Labels.severity }}
       *Instance:* {{ .Labels.instance }}
+      *Status:* {{ .Status }}
       {{ end }}
     send_resolved: true
 
@@ -30,10 +56,29 @@ receivers:
     color: 'danger'
     text: >-
       {{ range .Alerts }}
+      🔴 *CRITICAL ALERT*
       *Alert:* {{ .Annotations.summary }}
       *Description:* {{ .Annotations.description }}
       *Severity:* {{ .Labels.severity }}
-      *Status:* {{ .Status }}
       *Instance:* {{ .Labels.instance }}
+      *Status:* {{ .Status }}
+      *Started:* {{ .StartsAt }}
+      {{ end }}
+    send_resolved: true
+
+- name: 'slack-high'
+  slack_configs:
+  - channel: '#evaristogz-prometheus-alarms'
+    title: '⚠️ HIGH PRIORITY ALERT - {{ .GroupLabels.alertname }}'
+    color: 'warning'
+    text: >-
+      {{ range .Alerts }}
+      🟡 *HIGH PRIORITY ALERT*
+      *Alert:* {{ .Annotations.summary }}
+      *Description:* {{ .Annotations.description }}
+      *Severity:* {{ .Labels.severity }}
+      *Instance:* {{ .Labels.instance }}
+      *Status:* {{ .Status }}
+      *Started:* {{ .StartsAt }}
       {{ end }}
     send_resolved: true

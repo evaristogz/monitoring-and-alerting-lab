@@ -67,7 +67,7 @@ Antes de empezar, debes configurar tu webhook de Slack. Esto solo deberás hacer
 
 5. **Configurar el canal de Slack** en `helm/monitoring-values.yaml`:
    - Buscar las líneas que contienen `channel: '#evaristogz-prometheus-alarms'`
-   - Cambiar `#evaristogz-prometheus-alarms` por tu canal (ej: `#tu-nombre-prometheus-alarms`)
+   - Cambiar *#evaristogz-prometheus-alarms* por tu canal (por ejemplo: *#tu-nombre-prometheus-alarms*)
 
 ### 1. Preparar el entorno de Kubernetes
 
