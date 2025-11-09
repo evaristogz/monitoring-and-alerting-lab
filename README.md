@@ -139,21 +139,13 @@ kubectl patch secret alertmanager-prometheus-kube-prometheus-alertmanager -n mon
   --type merge \
   -p "{\"data\":{\"alertmanager.yaml\":\"$(cat /tmp/alertmanager-with-webhook.yml | base64 -w 0)\"}}"
 
-# 4. Aplicar la nueva configuración al clúster
-kubectl patch secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring \
-  --type merge \
-  -p "{\"data\":{\"alertmanager.yaml\":\"$(cat /tmp/alertmanager-with-webhook.yml | base64 -w 0)\"}}"
-
 # 5. Reiniciar AlertManager para cargar la nueva configuración
 kubectl delete pod -l alertmanager=prometheus-kube-prometheus-alertmanager -n monitoring
 
 # 6. Limpiar archivo temporal
 rm -f /tmp/alertmanager-with-webhook.yml
 
-# 7. Esperar a que AlertManager esté listo con la nueva configuración
-kubectl wait --for=condition=ready pod -l alertmanager=prometheus-kube-prometheus-alertmanager -n monitoring --timeout=120s
-
-# 8. Verificar que AlertManager se reinició correctamente
+# 7. Verificar que AlertManager se reinició correctamente
 kubectl get pods -n monitoring | grep alertmanager
 ```
 
