@@ -120,6 +120,45 @@ Se utilizan dos archivos de valores:
 - *helm/monitoring-values.yaml*: Configuración general (se puede versionar)
 - *secret-values.yaml*: Valores sensibles como webhooks de Slack (NO versionar)
 
+**Configurar AlertManager con webhook de Slack:**
+
+Después de que el stack esté instalado, configura AlertManager para que las notificaciones de Slack funcionen:
+
+```bash
+# 1. Extraer URL del webhook desde secret-values.yaml
+SLACK_WEBHOOK_URL=$(yq eval '.alertmanager.config.global.slack_api_url' secret-values.yaml)
+
+# 2. Verificar que la URL se extrajo correctamente
+echo "Webhook URL: ${SLACK_WEBHOOK_URL:0:50}..."
+
+# 3. Crear configuración temporal con la URL real
+sed "s|YOUR_SLACK_WEBHOOK_URL_HERE|$SLACK_WEBHOOK_URL|g" prometheus/alertmanager.yml > /tmp/alertmanager-with-webhook.yml
+
+# 4. Aplicar la nueva configuración al clúster
+kubectl patch secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring \
+  --type merge \
+  -p "{\"data\":{\"alertmanager.yaml\":\"$(cat /tmp/alertmanager-with-webhook.yml | base64 -w 0)\"}}"
+
+# 4. Aplicar la nueva configuración al clúster
+kubectl patch secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring \
+  --type merge \
+  -p "{\"data\":{\"alertmanager.yaml\":\"$(cat /tmp/alertmanager-with-webhook.yml | base64 -w 0)\"}}"
+
+# 5. Reiniciar AlertManager para cargar la nueva configuración
+kubectl delete pod -l alertmanager=prometheus-kube-prometheus-alertmanager -n monitoring
+
+# 6. Limpiar archivo temporal
+rm -f /tmp/alertmanager-with-webhook.yml
+
+# 7. Esperar a que AlertManager esté listo con la nueva configuración
+kubectl wait --for=condition=ready pod -l alertmanager=prometheus-kube-prometheus-alertmanager -n monitoring --timeout=120s
+
+# 8. Verificar que AlertManager se reinició correctamente
+kubectl get pods -n monitoring | grep alertmanager
+```
+
+> **Importante**: Estos pasos son necesarios para que las notificaciones de Slack funcionen correctamente. Sin ellos, AlertManager usará una configuración por defecto que no incluye tu webhook de Slack.
+
 ### 4. Acceder a Grafana
 
 Obtener la contraseña de admin de Grafana:
@@ -335,6 +374,85 @@ kubectl get events --sort-by=.metadata.creationTimestamp -n monitoring
 # Verificar recursos disponibles
 kubectl describe nodes
 kubectl top nodes
+```
+
+## Solución de problemas comunes
+
+### Problema: No llegan notificaciones a Slack
+
+Si las alertas no se están enviando a Slack, puede ser que la configuración de AlertManager no se haya aplicado correctamente. Ejecuta estos comandos para forzar la actualización:
+
+```bash
+# 1. Extraer URL del webhook desde secret-values.yaml
+SLACK_WEBHOOK_URL=$(yq eval '.alertmanager.config.global.slack_api_url' secret-values.yaml)
+
+# 2. Verificar que la URL se extrajo correctamente
+echo "Webhook URL: ${SLACK_WEBHOOK_URL:0:50}..."
+
+# 3. Crear configuración temporal con la URL real
+sed "s|YOUR_SLACK_WEBHOOK_URL_HERE|$SLACK_WEBHOOK_URL|g" prometheus/alertmanager.yml > /tmp/alertmanager-with-webhook.yml
+
+# 4. Aplicar la nueva configuración al clúster
+kubectl patch secret alertmanager-prometheus-kube-prometheus-alertmanager -n monitoring \
+  --type merge \
+  -p "{\"data\":{\"alertmanager.yaml\":\"$(cat /tmp/alertmanager-with-webhook.yml | base64 -w 0)\"}}"
+
+# 5. Reiniciar AlertManager para cargar la nueva configuración
+kubectl delete pod -l alertmanager=prometheus-kube-prometheus-alertmanager -n monitoring
+
+# 6. Limpiar archivo temporal
+rm -f /tmp/alertmanager-with-webhook.yml
+
+# 7. Esperar a que AlertManager esté listo
+kubectl wait --for=condition=ready pod -l alertmanager=prometheus-kube-prometheus-alertmanager -n monitoring --timeout=120s
+
+# 8. Verificar que AlertManager se reinició correctamente
+kubectl get pods -n monitoring | grep alertmanager
+```
+
+**Verificar que funcionó:**
+
+```bash
+# Port-forward para acceder a AlertManager
+kubectl port-forward -n monitoring svc/prometheus-kube-prometheus-alertmanager 9093:9093 &
+
+# Verificar alertas activas que deberían ir a Slack
+curl -s http://localhost:9093/api/v2/alerts | jq '.[] | {alertname: .labels.alertname, severity: .labels.severity, receivers: .receivers, state: .status.state}'
+
+# Verificar configuración de Slack
+curl -s http://localhost:9093/api/v2/status | jq -r '.config.original' | grep -A 10 -B 5 slack
+```
+
+**Si persisten los problemas:**
+
+1. **Verificar el webhook manualmente**:
+   ```bash
+   curl -X POST -H 'Content-type: application/json' \
+     --data '{"text":"Test desde AlertManager"}' \
+     "$SLACK_WEBHOOK_URL"
+   ```
+
+2. **Revisar logs de AlertManager**:
+   ```bash
+   kubectl logs -f alertmanager-prometheus-kube-prometheus-alertmanager-0 -n monitoring
+   ```
+
+3. **Verificar que el canal de Slack existe** y que el webhook tiene permisos para escribir en él.
+
+### Problema: AlertManager no está activo
+
+```bash
+# Verificar estado del pod
+kubectl get pods -n monitoring | grep alertmanager
+
+# Verificar servicios
+kubectl get svc -n monitoring | grep alertmanager
+
+# Ver logs de AlertManager
+kubectl logs alertmanager-prometheus-kube-prometheus-alertmanager-0 -n monitoring
+
+# Reiniciar AlertManager si es necesario
+kubectl delete pod alertmanager-prometheus-kube-prometheus-alertmanager-0 -n monitoring
 ```
 
 ## Pruebas de CI/CD y release de nuevas versiones
